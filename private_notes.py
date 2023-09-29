@@ -1,11 +1,10 @@
 import pickle
 import cryptography
+import os
 
 
 class PrivNotes:
   MAX_NOTE_LEN = 2048;
-  key = Fernet.generate_key()
-  Fernet(key)
 
   def __init__(self, password, data = None, checksum = None):
     """Constructor.
@@ -21,9 +20,16 @@ class PrivNotes:
     Raises:
       ValueError : malformed serialized format
     """
+
     self.kvs = {}
     if data is not None:
       self.kvs = pickle.loads(bytes.fromhex(data))
+
+
+
+
+
+
 
   def dump(self):
     """Computes a serialized representation of the notes database

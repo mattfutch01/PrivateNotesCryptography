@@ -6,7 +6,7 @@ def error(s):
 
 print('Initializing notes')
 priv_notes = PrivNotes('123456')
-
+print(priv_notes.data)
 print('Adding notes')
 kvs = { 'Groceries': 'lettuce\nbread\nchocolate',
         'Idea': 'We will take a forklift to the moon!',
