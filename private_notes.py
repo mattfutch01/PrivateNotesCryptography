@@ -22,10 +22,13 @@ class PrivNotes:
       ValueError : malformed serialized format
     """
     self.kvs = {}
+    saltes = os.urandom(16)
     if data is not None:
       self.kvs = pickle.loads(bytes.fromhex(data))
-    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = os.urandom(16), iterations = 2000000, backend = default_backend())
+    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = saltes, iterations = 2000000, backend = default_backend())
     key = kdf.derive(bytes(password, 'ascii'))
+    print(key)
+    print(saltes)
 
 
 
