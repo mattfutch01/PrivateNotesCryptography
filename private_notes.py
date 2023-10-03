@@ -1,10 +1,11 @@
 import pickle
-import cryptography
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.backends import default_backend
 import os
 
-
 class PrivNotes:
-  MAX_NOTE_LEN = 2048;
+  MAX_NOTE_LEN = 2048
 
   def __init__(self, password, data = None, checksum = None):
     """Constructor.
@@ -20,13 +21,11 @@ class PrivNotes:
     Raises:
       ValueError : malformed serialized format
     """
-
     self.kvs = {}
     if data is not None:
       self.kvs = pickle.loads(bytes.fromhex(data))
-
-
-
+    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = os.urandom(16), iterations = 2000000, backend = default_backend())
+    key = kdf.derive(bytes(password, 'ascii'))
 
 
 
@@ -41,6 +40,7 @@ class PrivNotes:
       checksum (str) : a hex-encoded checksum for the data used to protect
                        against rollback attacks (up to 32 characters in length)
     """
+
     return pickle.dumps(self.kvs).hex(), ''
 
   def get(self, title):

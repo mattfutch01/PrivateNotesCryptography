@@ -1,12 +1,16 @@
 from private_notes import PrivNotes
+import pickle
 import re
 
 def error(s):
   print('=== ERROR: %s' % s)
 
+
 print('Initializing notes')
 priv_notes = PrivNotes('123456')
-print("____________")
+print('_________________')
+
+
 
 
 
@@ -16,7 +20,7 @@ kvs = { 'Groceries': 'lettuce\nbread\nchocolate',
         'Secrets': 'The secret word is bananas.' }
 for title in kvs:
   priv_notes.set(title, kvs[title])
-print("____________")
+print('_________________')
 
 
 
@@ -28,10 +32,7 @@ for title in kvs:
 note = priv_notes.get('non-existent')
 if note is not None:
   error('get failed for title non-existent (expected None, received %s)' % note)
-print("____________")
-
-
-
+print('_________________')
 
 print('Trying to remove notes')
 if not priv_notes.remove('Groceries'):
@@ -41,15 +42,13 @@ if note is not None:
   error('get failed for title Groceries (expected None, received %s)' % note)
 if priv_notes.remove('non-existent'):
   error('remove failed for title non-existent')
-print("____________")
-
+print('_________________')
 
 
 
 print('Serializing notes')
 data, checksum = priv_notes.dump()
-print("____________")
-
+print('_________________')
 
 
 
@@ -60,6 +59,8 @@ for title in kvs:
   note2 = new_notes_instance.get(title)
   if note1 != note2:
     error('get mismatch for title %s (received values %s and %s)' % (title, note1, note2))
-print("____________")
+print('_________________')
+
+
 
 print('Testing complete')
