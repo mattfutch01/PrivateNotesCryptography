@@ -7,7 +7,7 @@ def error(s):
 
 
 print('Initializing notes')
-priv_notes = PrivNotes('123456', "hello")
+priv_notes = PrivNotes('123456')
 print('_________________')
 
 

@@ -1,7 +1,8 @@
 import pickle
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import os
 
 class PrivNotes:
@@ -21,14 +22,22 @@ class PrivNotes:
     Raises:
       ValueError : malformed serialized format
     """
+    self.nonce = 1
     self.kvs = {}
-    saltes = os.urandom(16)
+    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = os.urandom(16), iterations = 2000000, backend = default_backend())    
+    self.sourceKey = kdf.derive(bytes(password, 'ascii'))
+    Hmac = hmac.HMAC(self.sourceKey, hashes.SHA256())
+    Hmac2 = hmac.HMAC(self.sourceKey, hashes.SHA256())
+
+    Hmac.update(b"mac")
+    self.hashKey = Hmac.finalize()
+
+    Hmac2.update(b"enc")
+    self.encKey = Hmac2.finalize()
+
     if data is not None:
       self.kvs = pickle.loads(bytes.fromhex(data))
-    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = saltes, iterations = 2000000, backend = default_backend())
-    key = kdf.derive(bytes(password, 'ascii'))
-    print(key)
-    print(saltes)
+
 
 
 
@@ -77,8 +86,15 @@ class PrivNotes:
     """
     if len(note) > self.MAX_NOTE_LEN:
       raise ValueError('Maximum note length exceeded')
-    
-    self.kvs[title] = note
+    else:
+      note = note
+    self.nonce += 1
+    aesgcm = AESGCM(self.encKey)
+    newTitle = hmac.HMAC(self.hashKey, hashes.SHA256())
+    newTitle.update(title)
+    good = newTitle.finalize()
+    newNote = aesgcm.encrypt(self.nonce, note, title)
+    self.kvs[good] = newNote
 
 
   def remove(self, title):
