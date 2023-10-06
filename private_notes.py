@@ -5,6 +5,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import os
 
+# Names: Jonathan Jacob, Matthew Futch
+
 class PrivNotes:
   MAX_NOTE_LEN = 2048
 
@@ -22,21 +24,49 @@ class PrivNotes:
     Raises:
       ValueError : malformed serialized format
     """
-    self.nonce = 1
-    self.kvs = {}
-    kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = os.urandom(16), iterations = 2000000, backend = default_backend())    
-    self.sourceKey = kdf.derive(bytes(password, 'ascii'))
+    
+    
+    
+
+    if data is None:
+      self.nonce = 1
+      self.kvs = {}
+      self.salt = os.urandom(16)
+      kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = self.salt, iterations = 2000000, backend = default_backend())
+      self.sourceKey = kdf.derive(bytes(password, 'ascii'))
+
+
+
+    else: #data and checksum are provided
+      loadData = pickle.loads(bytes.fromhex(data))
+      # self.kvs = loadData
+
+      hashfunc = hashes.Hash(hashes.SHA256())
+      hashfunc.update(bytes.fromhex(data))
+      newChecksum = hashfunc.finalize()
+
+      if newChecksum != checksum:
+        raise ValueError("Provided data is malformed")
+
+      kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = loadData[2], iterations = 2000000, backend = default_backend())
+      givenSourceKey = kdf.derive(bytes(password, 'ascii'))
+      h = hmac.HMAC(givenSourceKey, hashes.SHA256())
+      h.update(b"pass")
+      hmacsourcekey = h.finalize()
+
+      if hmacsourcekey != loadData[1] :
+        raise ValueError("Provided data is malformed")
+      
+      self.kvs = loadData[0]
+      self.salt = loadData[2]
+      self.sourceKey = givenSourceKey
+
     Hmac = hmac.HMAC(self.sourceKey, hashes.SHA256())
     Hmac2 = hmac.HMAC(self.sourceKey, hashes.SHA256())
-
     Hmac.update(b"mac")
     self.hashKey = Hmac.finalize()
-
     Hmac2.update(b"enc")
     self.encKey = Hmac2.finalize()
-    
-    if data is not None:
-      self.kvs = pickle.loads(bytes.fromhex(data))
 
   def dump(self):
     """Computes a serialized representation of the notes database
@@ -48,11 +78,14 @@ class PrivNotes:
       checksum (str) : a hex-encoded checksum for the data used to protect
                        against rollback attacks (up to 32 characters in length)
     """
-    hashfunc = hashes.Hash(hashes.SHA256())
-    data = pickle.dumps(self.kvs).hex()
+    Hmac = hmac.HMAC(self.sourceKey, hashes.SHA256())
+    Hmac.update(b"pass")    
+    hKey = Hmac.finalize()
+    data = pickle.dumps((self.kvs, hKey, self.salt)).hex()
+    
+    hashfunc = hashes.Hash(hashes.SHA256())    
     hashfunc.update(bytes.fromhex(data))
     checksum = hashfunc.finalize()
-
     return data, checksum
 
   def get(self, title):
@@ -72,7 +105,7 @@ class PrivNotes:
 
     if searchTitle in self.kvs:
       ct, nonce = self.kvs[searchTitle]
-      correctNote = aesgcm.decrypt(nonce, ct, None)
+      correctNote = aesgcm.decrypt(nonce, ct, bytes(title, 'ascii'))
       length = int.from_bytes(correctNote[:4], "big")
       return correctNote[4:length+4].decode()
     return None
@@ -102,7 +135,7 @@ class PrivNotes:
     newTitle = hmac.HMAC(self.hashKey, hashes.SHA256())
     newTitle.update(bytes(title, 'ascii'))
     good = newTitle.finalize()
-    goodNote = aesgcm.encrypt(self.nonce.to_bytes(8, "big"), correctNote, None)
+    goodNote = aesgcm.encrypt(self.nonce.to_bytes(8, "big"), correctNote, bytes(title, 'ascii'))
     self.kvs[good] = (goodNote, self.nonce.to_bytes(8, "big"))
 
 

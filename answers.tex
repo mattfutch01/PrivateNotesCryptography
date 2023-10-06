@@ -1,0 +1,40 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\input{latexdefs}
+
+\begin{document}
+
+\newlength{\boxwidth}
+\setlength{\boxwidth}{\textwidth}
+\addtolength{\boxwidth}{-2cm}
+\noindent\framebox[\textwidth]{
+\begin{minipage}[t]{\boxwidth}
+  {\bf COMP 537: Cryptography \hfill Fall 2023}  \\ [-0.3cm]
+  \begin{center} 
+    {\Large Short Answer Questions}
+  \end{center}
+\end{minipage}}
+
+\begin{enumerate}
+  \item Suppose an adversary is able to perform a swap attack (as described in Section 3). Show how such an adversary can win the note taking security game. Note that you must say why the adversary you construct is admissible for the security game.
+  \\ The adversary submits $<\ms{title}_1, n_0, n_1>$ such $n_0 \neq n_1$. The challenger inserts <title, $n_b$>. The adversary then inserts $<\ms{title}_2, n_2, n_2>$. 
+
+  \item Suppose an adversary is able to perform a rollback attack (as described in Section 3). Show how
+such an adversary can win the security game. As before, you should say why the adversary you
+construct is admissible. 
+  \item Briefly describe your method for checking passwords.
+  \item Briefly describe your method for preventing the adversary from learning information about the
+lengths of the notes stored in your note-taking application.
+
+  \item Briefly describe your method for preventing swap attacks (Section 3). Provide an argument for why
+the attack is prevented in your scheme.
+  \item $\mathbf{Optional\ feedback}$ How much time did you spend on this assignment? Did you find it too easy/hard
+or just right?
+  \item $\mathbf{Optional  \ feedback}$ Please let us know if you have any feedback on the design of this assignment or
+on the course in general.
+
+\end{enumerate}
+
+
+\end{document}
