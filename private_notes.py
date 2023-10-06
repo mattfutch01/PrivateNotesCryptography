@@ -75,13 +75,11 @@ class PrivNotes:
     aesgcm = AESGCM(self.encKey)
 
     if searchTitle in self.kvs:
-      print(title)
-      note = self.kvs.get(searchTitle)
-      """length = note[:16]
-      noncet = note[:2016]
-      correctNote = aesgcm.decrypt(bytes(noncet), note, None)
-      correctNote = note[16:length+16]"""
-      return #correctNote
+      ct, nonce = self.kvs[searchTitle]
+      correctNote = aesgcm.decrypt(nonce, ct, None)
+      length = int.from_bytes(correctNote[:4], "big")
+      print(correctNote[4:length+4].decode())
+      return correctNote[4:length+4].decode()
     return None
 
   def set(self, title, note):
@@ -102,14 +100,15 @@ class PrivNotes:
     if len(note) > self.MAX_NOTE_LEN:
       raise ValueError('Maximum note length exceeded')
     else:
-      note = format(len(note), "016b") + note + "0" * (500-len(note)-11)
+      padding = note + "0" * (self.MAX_NOTE_LEN-len(note))
+      correctNote = len(note).to_bytes(4, "big") + bytes(padding, 'ascii')
     self.nonce += 1
     aesgcm = AESGCM(self.encKey)
     newTitle = hmac.HMAC(self.hashKey, hashes.SHA256())
     newTitle.update(bytes(title, 'ascii'))
     good = newTitle.finalize()
-    newNote = aesgcm.encrypt(bytes(format(self.nonce, '032b'), 'ascii'), bytes(note, 'ascii'), bytes(format(self.nonce, '032b'), 'ascii'))
-    self.kvs[good] = newNote
+    goodNote = aesgcm.encrypt(self.nonce.to_bytes(8, "big"), correctNote, None)
+    self.kvs[good] = (goodNote, self.nonce.to_bytes(8, "big"))
 
 
   def remove(self, title): #done
