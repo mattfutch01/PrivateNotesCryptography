@@ -34,13 +34,9 @@ class PrivNotes:
 
     Hmac2.update(b"enc")
     self.encKey = Hmac2.finalize()
-
+    
     if data is not None:
       self.kvs = pickle.loads(bytes.fromhex(data))
-
-
-
-
 
   def dump(self):
     """Computes a serialized representation of the notes database
@@ -78,7 +74,6 @@ class PrivNotes:
       ct, nonce = self.kvs[searchTitle]
       correctNote = aesgcm.decrypt(nonce, ct, None)
       length = int.from_bytes(correctNote[:4], "big")
-      print(correctNote[4:length+4].decode())
       return correctNote[4:length+4].decode()
     return None
 
