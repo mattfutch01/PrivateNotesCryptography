@@ -52,8 +52,12 @@ class PrivNotes:
       checksum (str) : a hex-encoded checksum for the data used to protect
                        against rollback attacks (up to 32 characters in length)
     """
+    hashfunc = hashes.Hash(hashes.SHA256())
+    data = pickle.dumps(self.kvs).hex()
+    hashfunc.update(bytes.fromhex(data))
+    checksum = hashfunc.finalize()
 
-    return pickle.dumps(self.kvs).hex(), ''
+    return data, checksum
 
   def get(self, title):
     """Fetches the note associated with a title.
@@ -65,8 +69,19 @@ class PrivNotes:
       note (str) : the note associated with the requested title if
                        it exists and otherwise None
     """
-    if title in self.kvs:
-      return self.kvs[title]
+    Hmac = hmac.HMAC(self.hashKey, hashes.SHA256())
+    Hmac.update(bytes(title, 'ascii'))
+    searchTitle = Hmac.finalize()
+    aesgcm = AESGCM(self.encKey)
+
+    if searchTitle in self.kvs:
+      print(title)
+      note = self.kvs.get(searchTitle)
+      """length = note[:16]
+      noncet = note[:2016]
+      correctNote = aesgcm.decrypt(bytes(noncet), note, None)
+      correctNote = note[16:length+16]"""
+      return #correctNote
     return None
 
   def set(self, title, note):
@@ -87,17 +102,17 @@ class PrivNotes:
     if len(note) > self.MAX_NOTE_LEN:
       raise ValueError('Maximum note length exceeded')
     else:
-      note = note
+      note = format(len(note), "016b") + note + "0" * (500-len(note)-11)
     self.nonce += 1
     aesgcm = AESGCM(self.encKey)
     newTitle = hmac.HMAC(self.hashKey, hashes.SHA256())
-    newTitle.update(title)
+    newTitle.update(bytes(title, 'ascii'))
     good = newTitle.finalize()
-    newNote = aesgcm.encrypt(self.nonce, note, title)
+    newNote = aesgcm.encrypt(bytes(format(self.nonce, '032b'), 'ascii'), bytes(note, 'ascii'), bytes(format(self.nonce, '032b'), 'ascii'))
     self.kvs[good] = newNote
 
 
-  def remove(self, title):
+  def remove(self, title): #done
     """Removes the note for the requested title from the database.
        
        Args:
@@ -107,8 +122,12 @@ class PrivNotes:
          success (bool) : True if the title was removed and False if the title was
                           not found
     """
-    if title in self.kvs:
-      del self.kvs[title]
+    Hmac = hmac.HMAC(self.hashKey, hashes.SHA256())
+    Hmac.update(bytes(title, 'ascii'))
+    searchTitle = Hmac.finalize()   
+
+    if searchTitle in self.kvs:
+      del self.kvs[searchTitle]
       return True
 
     return False
